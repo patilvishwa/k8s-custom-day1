@@ -1,0 +1,77 @@
+Step 1:
+#kubectl get nodes
+#kubectl describe node minikube
+#kubectl label node minikube PAT=0
+#kubectl describe node minikube
+
+Step 2:
+Add a pod with Node Selector:
+
+podpre.txt
+==========
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+  labels:
+    env: test
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    imagePullPolicy: IfNotPresent
+  nodeSelector:
+    PAT: "1"
+    kubernetes.io/os: 'Windows'
+
+
+#kubectl create -f podpre.txt
+
+Step 3:
+
+#kubectl get pods 
+#kubectl describe pod nginx
+
+Step 4:
+# kubectl delete pod nginx
+# edit Step 2 , with PAT=0
+# Repeat Step 3
+# edit Step 2 with os --> linux
+# Repeat Step 3
+# Pod Running?
+
+Step 5:
+Lets Continue for Pod Affinity, The pod has to be scheduled in Node where there is a Pod with a Label of Security: S1 and Node should have PAT label assigned.
+notepad pax2.txt
+================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: with-pod-affinity
+spec:
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: security
+            operator: In
+            values:
+            - S1
+        topologyKey: PAT
+  containers:
+  - name: with-pod-affinity
+    image: k8s.gcr.io/pause:2.0
+
+Step 6:
+# kubectl create -f pax2.txt
+# kubectl describe pod with-pod-affinity
+? where is the affinity
+# kubectl get pod with-pod-affinity -o yaml
+? The pod is yet to be scheduled
+# kubectl run pod-apps --generator=run-pod/v1 --image=nginx --port=80 -l security=S1
+? Have the pod got scheduled now?
+
+Step 7:
+kubectl delete pod apps-pod
+? Is there an impact to with-pod-affinity ?
